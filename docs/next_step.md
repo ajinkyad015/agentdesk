@@ -1,45 +1,4 @@
-You're at the point where the **foundation is complete**. The next phase is turning the foundation into a working AI application.
 
-I recommend this order because each step builds directly on the previous one without requiring refactoring.
-
----
-
-# Phase 2: API Layer
-
-## 1. Pydantic Schemas (Next)
-
-Create a dedicated `schemas/` package.
-
-```text
-app/
-└── schemas/
-    ├── __init__.py
-    ├── common.py
-    ├── user.py
-    ├── conversation.py
-    ├── message.py
-    ├── chat.py
-    └── task.py
-```
-
-Examples:
-
-```python
-ConversationCreate
-ConversationResponse
-
-MessageCreate
-MessageResponse
-
-ChatRequest
-ChatResponse
-
-TaskResponse
-```
-
-These become the contracts between frontend and backend.
-
----
 
 ## 2. Dependency Injection
 
