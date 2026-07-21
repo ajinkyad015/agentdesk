@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.models.enums import MessageRole
 from app.models.message import Message
+from app.prompts.system import SYSTEM_PROMPT
 
 
 @dataclass(slots=True)
@@ -46,31 +47,48 @@ class OpenAIProvider:
             api_key=settings.OPENAI_API_KEY,
         )
 
-    # async def generate(
-    #     self,
-    #     messages: list[Message],
-    # ) -> LLMResponse:
-    #     response = await self.client.chat.completions.create(
-    #         model=self.model,
-    #         messages=[
-    #             {
-    #                 "role": self._role(message),
-    #                 "content": message.content,
-    #             }
-    #             for message in messages
-    #         ],
-    #     )
+    async def generate(
+        self,
+        messages: list[Message],
+    ) -> LLMResponse:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=self._serialize_messages(messages),
 
-    #     choice = response.choices[0]
-    #     usage = response.usage
+        )
 
-    #     return LLMResponse(
-    #         content=choice.message.content or "",
-    #         model=response.model,
-    #         prompt_tokens=usage.prompt_tokens if usage else 0,
-    #         completion_tokens=usage.completion_tokens if usage else 0,
-    #         total_tokens=usage.total_tokens if usage else 0,
-    #     )
+        choice = response.choices[0]
+        usage = response.usage
+
+        return LLMResponse(
+            content=choice.message.content or "",
+            model=response.model,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+            total_tokens=usage.total_tokens if usage else 0,
+        )
+
+    def _serialize_messages(
+        self,
+        messages: list[Message],
+    ) -> list[dict[str, str]]:
+        api_messages = [
+            {
+                "role": "system",
+                "content": settings.SYSTEM_PROMPT,
+            }
+        ]
+
+        api_messages.extend(
+            {
+                "role": self._role(message),
+                "content": message.content,
+            }
+            for message in messages
+        )
+
+        return api_messages
+
 
     @staticmethod
     def _role(message: Message) -> str:
