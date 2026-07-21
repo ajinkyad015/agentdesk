@@ -46,31 +46,31 @@ class OpenAIProvider:
             api_key=settings.OPENAI_API_KEY,
         )
 
-    async def generate(
-        self,
-        messages: list[Message],
-    ) -> LLMResponse:
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": self._role(message),
-                    "content": message.content,
-                }
-                for message in messages
-            ],
-        )
+    # async def generate(
+    #     self,
+    #     messages: list[Message],
+    # ) -> LLMResponse:
+    #     response = await self.client.chat.completions.create(
+    #         model=self.model,
+    #         messages=[
+    #             {
+    #                 "role": self._role(message),
+    #                 "content": message.content,
+    #             }
+    #             for message in messages
+    #         ],
+    #     )
 
-        choice = response.choices[0]
-        usage = response.usage
+    #     choice = response.choices[0]
+    #     usage = response.usage
 
-        return LLMResponse(
-            content=choice.message.content or "",
-            model=response.model,
-            prompt_tokens=usage.prompt_tokens if usage else 0,
-            completion_tokens=usage.completion_tokens if usage else 0,
-            total_tokens=usage.total_tokens if usage else 0,
-        )
+    #     return LLMResponse(
+    #         content=choice.message.content or "",
+    #         model=response.model,
+    #         prompt_tokens=usage.prompt_tokens if usage else 0,
+    #         completion_tokens=usage.completion_tokens if usage else 0,
+    #         total_tokens=usage.total_tokens if usage else 0,
+    #     )
 
     @staticmethod
     def _role(message: Message) -> str:
