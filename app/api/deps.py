@@ -16,6 +16,8 @@ from app.services.agent import AgentService
 from app.services.conversation import ConversationService
 
 
+from app.auth.service import AuthService
+
 # ---------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------
@@ -59,6 +61,23 @@ AgentServiceDep = Annotated[
     Depends(get_agent_service),
 ]
 
+# ---------------------------------------------------------------------
+# Authentication Services
+# ---------------------------------------------------------------------
+
+def get_auth_service(
+    db: DBSession,
+) -> AuthService:
+    """
+    Dependency that returns an AuthService.
+    """
+    return AuthService(db)
+
+
+AuthServiceDep = Annotated[
+    AuthService,
+    Depends(get_auth_service),
+]
 
 # ---------------------------------------------------------------------
 # Authentication
