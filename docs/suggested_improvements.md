@@ -184,3 +184,183 @@ async def register(
     return await service.register(payload)
 
 This keeps the routing layer consistent with the rest of your architecture and makes the service easy to replace or mock in tests.
+
+
+# 8. JWT  Remaining (Nice-to-have)
+
+agree. At this point the authentication layer is sufficiently complete to build the rest of the application. We can defer things like email verification, refresh token persistence, password strength policies, etc.
+
+The next milestone is the Conversation Router.
+
+These are improvements rather than blockers.
+
+1. Password strength validation ⭐⭐⭐
+
+Currently:
+
+len(password) >= 8
+
+Better:
+
+✓ uppercase
+✓ lowercase
+✓ number
+✓ symbol
+✓ minimum length
+
+This is the biggest missing feature.
+
+2. Automatic password rehash ⭐⭐⭐
+
+During login:
+
+if needs_rehash(user.password_hash):
+    user.password_hash = hash_password(password)
+
+Very small addition.
+
+Very worthwhile.
+
+3. JWT Claims ⭐⭐
+
+Current payload probably resembles:
+
+{
+    "sub": "...",
+    "type": "access",
+    "iat": "...",
+    "exp": "..."
+}
+
+A more production-ready payload would add:
+
+{
+    "iss": "agentdesk",
+    "aud": "agentdesk-api",
+    "jti": "...",
+    "nbf": "...",
+    "sub": "...",
+    "type": "access"
+}
+
+Not essential for an MVP.
+
+4. Centralized Security Constants ⭐
+
+Instead of:
+
+ACCESS_TOKEN_TYPE = "access"
+
+Create:
+
+auth/constants.py
+
+Pure cleanup.
+
+5. JWTManager / PasswordManager Classes ⭐
+
+Current:
+
+create_access_token()
+
+verify_access_token()
+
+Future:
+
+jwt_manager.create_access()
+
+jwt_manager.verify()
+
+Mostly an architectural preference.
+
+6. Better Exceptions ⭐⭐
+
+Right now the router probably contains something like:
+
+except InvalidCredentialsError:
+
+You could introduce a global exception handler later, but it's not necessary now.
+
+7. Email Verification Flow ⭐⭐⭐⭐
+
+Currently:
+
+email_verified = False
+
+There is no:
+
+verification token
+email
+verification endpoint
+
+That's a future feature.
+
+8. Refresh Token Storage ⭐⭐⭐⭐⭐
+
+Right now refresh tokens are stateless JWTs.
+
+A production system often stores them in the database to support:
+
+logout
+revoke one device
+revoke all devices
+device tracking
+
+For a personal project or MVP, stateless refresh tokens are perfectly acceptable.
+
+# 9.service/ conversation improvments ( Related to Exceptions):
+I recommend one small improvement
+
+Instead of:
+
+raise ValueError("Conversation not found")
+
+create a service exception.
+
+app/services/exceptions.py
+
+class ConversationNotFoundError(Exception):
+    """Conversation was not found."""
+
+Then:
+
+raise ConversationNotFoundError()
+
+The router maps it to:
+
+except ConversationNotFoundError:
+    raise HTTPException(
+        status_code=404,
+        detail="Conversation not found",
+    )
+
+This keeps FastAPI-specific concerns out of the service layer and makes the service reusable outside HTTP.
+
+With these two methods in place, ConversationService is ready to support a full CRUD router.
+
+
+# 10. Recommendation related to exceptions
+
+Instead of wrapping every endpoint with:
+
+try:
+    ...
+except ConversationNotFoundError:
+    raise HTTPException(...)
+
+introduce a global exception handler later:
+
+@app.exception_handler(ConversationNotFoundError)
+async def conversation_not_found_handler(request, exc):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": "Conversation not found"},
+    )
+
+Then the router becomes:
+
+return await service.get_conversation(...)
+
+with no try/except blocks. This keeps routers extremely thin and scales much better as you add more domain-specific exceptions.
+
+With this router in place, you now have complete authenticated CRUD operations for conversations. The next router should be chat.py, which will connect AgentService to your LLM and persist the conversation history automatically.

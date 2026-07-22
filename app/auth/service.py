@@ -36,6 +36,22 @@ class AuthService:
         self.session = session
         self.users = UserRepository(session)
 
+
+    def _create_authentication_result(
+        self,
+        user: User,
+    ) -> AuthenticationResult:
+        """
+        Create a complete authentication result for a user.
+        """
+
+        return AuthenticationResult(
+            user=user,
+            access_token=create_access_token(user.id),
+            refresh_token=create_refresh_token(user.id),
+        )
+
+
     async def register(
         self,
         data: UserCreate,
@@ -61,6 +77,7 @@ class AuthService:
         await self.session.refresh(user)
 
         return user
+
 
     async def authenticate(
         self,
@@ -96,16 +113,8 @@ class AuthService:
 
         await self.session.commit()
 
-        access_token = create_access_token(user.id)
+        return self._create_authentication_result(user)
 
-        refresh_token = create_refresh_token(user.id)
-        
-
-        return AuthenticationResult(
-            user=user,
-            access_token=access_token,
-            refresh_token=refresh_token,
-        )
 
     async def refresh(
         self,
@@ -125,7 +134,9 @@ class AuthService:
         if not user.is_active:
             raise InactiveUserError()
 
+        result = self._create_authentication_result(user)
+
         return TokenResponse(
-            access_token=create_access_token(user.id),
-            refresh_token=create_refresh_token(user.id),
+            access_token=result.access_token,
+            refresh_token=result.refresh_token,
         )
