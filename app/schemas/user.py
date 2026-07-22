@@ -46,3 +46,4 @@ class UserResponse(BaseResponse):
 
     is_active: bool
     email_verified: bool
+ 

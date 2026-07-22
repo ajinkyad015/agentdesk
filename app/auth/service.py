@@ -7,22 +7,23 @@ from app.auth.exceptions import (
     InvalidCredentialsError,
     UserAlreadyExistsError,
 )
-from app.auth.jwt import (
-    create_access_token,
-    create_refresh_token,
-)
 from app.auth.password import (
     hash_password,
     needs_rehash,
-    needs_rehash,
     verify_password,
 )
-from app.models import user
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate
 
+from app.auth.jwt import (
+    create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
+)
 
+from app.schemas.auth import TokenResponse
+from app.auth.models import AuthenticationResult
 class AuthService:
     """
     Handles registration and authentication.
@@ -66,7 +67,7 @@ class AuthService:
         *,
         email: str,
         password: str,
-    ) -> tuple[User, str, str]:
+    ) -> AuthenticationResult:
         """
         Authenticate a user.
 
@@ -100,8 +101,31 @@ class AuthService:
         refresh_token = create_refresh_token(user.id)
         
 
-        return (
-            user,
-            access_token,
-            refresh_token,
+        return AuthenticationResult(
+            user=user,
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+    async def refresh(
+        self,
+        refresh_token: str,
+    ) -> TokenResponse:
+        """
+        Refresh an access token using a valid refresh token.
+        """
+
+        user_id = verify_refresh_token(refresh_token)
+
+        user = await self.users.get(user_id)
+
+        if user is None:
+            raise InvalidCredentialsError()
+
+        if not user.is_active:
+            raise InactiveUserError()
+
+        return TokenResponse(
+            access_token=create_access_token(user.id),
+            refresh_token=create_refresh_token(user.id),
         )
