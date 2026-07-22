@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.dependencies import (
+    get_current_active_user,
+    get_current_superuser,
+    get_current_user,
+)
 from app.db.session import get_db
+from app.models.user import User
 from app.services.agent import AgentService
 from app.services.conversation import ConversationService
 
@@ -56,23 +61,20 @@ AgentServiceDep = Annotated[
 
 
 # ---------------------------------------------------------------------
-# Authentication (Temporary)
+# Authentication
 # ---------------------------------------------------------------------
 
-async def get_current_user_id() -> UUID:
-    """
-    Temporary authentication dependency.
+CurrentUser = Annotated[
+    User,
+    Depends(get_current_user),
+]
 
-    This will be replaced by JWT authentication.
-    """
+CurrentActiveUser = Annotated[
+    User,
+    Depends(get_current_active_user),
+]
 
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Authentication has not been implemented.",
-    )
-
-
-CurrentUserID = Annotated[
-    UUID,
-    Depends(get_current_user_id),
+CurrentSuperUser = Annotated[
+    User,
+    Depends(get_current_superuser),
 ]

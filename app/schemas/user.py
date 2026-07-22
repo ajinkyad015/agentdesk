@@ -45,4 +45,4 @@ class UserResponse(BaseResponse):
     full_name: str
 
     is_active: bool
-
+    email_verified: bool

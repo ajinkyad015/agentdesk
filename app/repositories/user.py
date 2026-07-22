@@ -1,51 +1,57 @@
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 from app.repositories.base import BaseRepository
 
 
 class UserRepository(BaseRepository[User]):
-    """
-    Repository for User-specific database operations.
-    """
+    def __init__(self, session: AsyncSession):
+        super().__init__(User, session)
 
-    def __init__(self, session):
-        super().__init__(session, User)
-
-    async def get_by_email(self, email: str) -> User | None:
-        """
-        Retrieve a user by email.
-        """
-        stmt = select(User).where(User.email == email)
+    async def get_by_email(
+        self,
+        email: str,
+    ) -> User | None:
+        stmt = (
+            select(User)
+            .where(User.email == email)
+            .limit(1)
+        )
 
         result = await self.session.execute(stmt)
 
         return result.scalar_one_or_none()
 
-    async def email_exists(self, email: str) -> bool:
-        """
-        Check whether an email already exists.
-        """
+    async def email_exists(
+        self,
+        email: str,
+    ) -> bool:
         return await self.get_by_email(email) is not None
 
-    async def get_active_users(
+    async def get_active_by_email(
         self,
-        *,
-        offset: int = 0,
-        limit: int = 100,
-    ) -> list[User]:
-        """
-        Return only active users.
-        """
+        email: str,
+    ) -> User | None:
         stmt = (
             select(User)
-            .where(User.is_active.is_(True))
-            .offset(offset)
-            .limit(limit)
+            .where(
+                User.email == email,
+                User.is_active.is_(True),
+            )
+            .limit(1)
         )
 
         result = await self.session.execute(stmt)
 
-        return list(result.scalars().all())
+        return result.scalar_one_or_none()
+
+    async def update_last_login(
+        self,
+        user: User,
+    ) -> None:
+        user.mark_login()
+
+        await self.session.flush()

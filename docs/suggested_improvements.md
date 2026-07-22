@@ -92,3 +92,95 @@ Before implementing authentication, let's do these two changes:
 
 Update the User model with the authentication fields.
 Create one Alembic migration for those changes
+
+
+# 5.Future improvements
+
+This implementation is a solid foundation, but production systems often add additional claims:
+
+payload = {
+    "sub": str(user.id),
+    "email": user.email,
+    "role": "admin",
+    "jti": str(uuid4()),      # unique token ID
+    "iss": "agentdesk",       # issuer
+    "aud": "agentdesk-api",   # audience
+    "type": "access",
+    "iat": now,
+    "nbf": now,
+    "exp": ...
+}
+
+The jti claim is particularly useful if you later implement token revocation
+# 6. Improvement to api/deps.py
+
+Once this file exists, replace the placeholder dependency with aliases using Annotated:
+
+from typing import Annotated
+
+from fastapi import Depends
+
+from app.auth.dependencies import (
+    get_current_active_user,
+    get_current_superuser,
+    get_current_user,
+)
+from app.models.user import User
+
+
+CurrentUser = Annotated[
+    User,
+    Depends(get_current_user),
+]
+
+CurrentActiveUser = Annotated[
+    User,
+    Depends(get_current_active_user),
+]
+
+CurrentSuperUser = Annotated[
+    User,
+    Depends(get_current_superuser),
+]
+
+From this point onward, your routers can simply declare:
+
+async def create_conversation(
+    current_user: CurrentActiveUser,
+    service: ConversationServiceDep,
+):
+    ...
+
+No UUID extraction or repeated authorization logic is needed.
+
+# 7.Improvement: Inject AuthService
+
+One thing I'd change from the implementation above is to avoid instantiating AuthService inside each route:
+
+service = AuthService(db)
+
+Instead, add a dependency in app/api/deps.py:
+
+from typing import Annotated
+from fastapi import Depends
+
+from app.auth.service import AuthService
+
+def get_auth_service(db: DBSession) -> AuthService:
+    return AuthService(db)
+
+AuthServiceDep = Annotated[
+    AuthService,
+    Depends(get_auth_service),
+]
+
+Then your routes become:
+
+@router.post("/register")
+async def register(
+    payload: UserCreate,
+    service: AuthServiceDep,
+):
+    return await service.register(payload)
+
+This keeps the routing layer consistent with the rest of your architecture and makes the service easy to replace or mock in tests.
