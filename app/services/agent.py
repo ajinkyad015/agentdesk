@@ -4,79 +4,127 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.conversation import Conversation
-from app.models.message import Message
-from app.repositories.conversation import ConversationRepository
-from app.repositories.message import MessageRepository
+from app.schemas.chat import ChatResponse
+from app.services.conversation import ConversationService
+from app.services.llm import LLMService
+from app.services.exceptions import ConversationNotFoundError
+from collections.abc import AsyncIterator
 
 
-class ConversationService:
+
+class AgentService:
     """
-    Business logic for conversations.
+    Orchestrates a complete AI conversation turn.
+
+    Responsibilities:
+    - Validate the conversation exists
+    - Persist the user's message
+    - Load conversation history
+    - Call the LLM
+    - Persist the assistant's response
+    - Return a ChatResponse
     """
 
-    def __init__(self, session: AsyncSession):
+    def __init__(
+        self,
+        session: AsyncSession,
+    ):
         self.session = session
+        self.conversations = ConversationService(session)
+        self.llm = LLMService()
 
-        self.conversations = ConversationRepository(session)
-        self.messages = MessageRepository(session)
-
-    async def create_conversation(
+    async def chat(
         self,
         *,
+        conversation_id: UUID,
         user_id: UUID,
-        title: str = "New Conversation",
-    ) -> Conversation:
-        conversation = await self.conversations.create(
+        message: str,
+    ) -> ChatResponse:
+        """
+        Execute one complete conversation turn.
+        """
+
+        conversation = await self.conversations.get_conversation(
+            conversation_id=conversation_id,
             user_id=user_id,
-            title=title,
         )
 
-        await self.session.commit()
+        if conversation is None:
+            raise ConversationNotFoundError()
 
-        return conversation
-
-    async def get_conversation(
-        self,
-        conversation_id: UUID,
-        user_id: UUID,
-    ) -> Conversation | None:
-        return await self.conversations.get_user_conversation(
-            conversation_id,
-            user_id,
+        await self.conversations.add_user_message(
+            conversation_id=conversation_id,
+            content=message,
         )
 
-    async def list_conversations(
+        history = await self.conversations.history(
+            conversation_id=conversation_id,
+        )
+
+        response = await self.llm.generate(history)
+
+        await self.conversations.add_assistant_message(
+            conversation_id=conversation_id,
+            content=response.content,
+            model=response.model,
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
+            total_tokens=response.total_tokens,
+        )
+
+        return ChatResponse(
+            conversation_id=conversation_id,
+            message=response.content,
+            model=response.model,
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
+            total_tokens=response.total_tokens,
+        )
+
+    
+    async def stream_chat(
         self,
-        user_id: UUID,
         *,
-        offset: int = 0,
-        limit: int = 100,
-    ) -> list[Conversation]:
-        return await self.conversations.get_user_conversations(
-            user_id,
-            offset=offset,
-            limit=limit,
+        conversation_id: UUID,
+        user_id: UUID,
+        message: str,
+    ) -> AsyncIterator[str]:
+        """
+        Execute one complete conversation turn using streaming.
+        """
+
+        conversation = await self.conversations.get_conversation(
+            conversation_id=conversation_id,
+            user_id=user_id,
         )
 
-    async def add_user_message(
-        self,
-        conversation_id: UUID,
-        content: str,
-    ) -> Message:
-        message = await self.messages.create_user_message(
-            conversation_id,
-            content,
+        if conversation is None:
+            raise ConversationNotFoundError()
+
+        await self.conversations.add_user_message(
+            conversation_id=conversation_id,
+            content=message,
+        )
+
+        history = await self.conversations.history(
+            conversation_id=conversation_id,
+        )
+
+        chunks: list[str] = []
+
+        async for chunk in self.llm.stream(history):
+            chunks.append(chunk)
+            yield chunk
+
+        content = "".join(chunks)
+
+        await self.conversations.add_assistant_message(
+            conversation_id=conversation_id,
+            content=content,
+            model=self.llm.model,
+            prompt_tokens=0,
+            completion_tokens=0,
+            total_tokens=0,
         )
 
         await self.session.commit()
-
-        return message
-
-    async def history(
-        self,
-        conversation_id: UUID,
-    ) -> list[Message]:
-        return await self.messages.get_conversation_messages(
-            conversation_id
-        )

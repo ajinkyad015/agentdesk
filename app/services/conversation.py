@@ -32,7 +32,7 @@ class ConversationService:
         )
 
         await self.session.commit()
-
+        await self.session.refresh(conversation)
         return conversation
 
     async def get_conversation(
@@ -75,10 +75,10 @@ class ConversationService:
     async def history(
             self,
             conversation_id: UUID,
-        ) -> list[Message]:
-            return await self.messages.get_conversation_messages(
-                conversation_id
-            )
+    ) -> list[Message]:
+        return await self.messages.get_conversation_messages(
+            conversation_id
+        )
 
 
 
@@ -136,3 +136,27 @@ class ConversationService:
         await self.conversations.delete(conversation)
 
         await self.session.commit()
+
+
+    async def add_assistant_message(
+        self,
+        *,
+        conversation_id: UUID,
+        content: str,
+        model: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        total_tokens: int,
+    ) -> Message:
+        message = await self.messages.create_assistant_message(
+            conversation_id=conversation_id,
+            content=content,
+            model=model,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+        )
+
+        await self.session.commit()
+
+        return message

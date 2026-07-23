@@ -339,7 +339,7 @@ This keeps FastAPI-specific concerns out of the service layer and makes the serv
 With these two methods in place, ConversationService is ready to support a full CRUD router.
 
 
-# 10. Recommendation related to exceptions
+# 10.  recommendation related to exceptions
 
 Instead of wrapping every endpoint with:
 

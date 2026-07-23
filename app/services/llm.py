@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, AsyncIterator
 
 from openai import AsyncOpenAI
 
@@ -34,6 +34,11 @@ class LLMProvider(Protocol):
         messages: list[Message],
     ) -> LLMResponse: ...
 
+    def stream(
+        self,
+        messages: list[Message],
+    ) -> AsyncIterator[str]:
+        ...
 
 class OpenAIProvider:
     """
@@ -67,6 +72,34 @@ class OpenAIProvider:
             completion_tokens=usage.completion_tokens if usage else 0,
             total_tokens=usage.total_tokens if usage else 0,
         )
+
+    async def stream(
+        self,
+        messages: list[Message],
+    ) -> AsyncIterator[str]:
+        """
+        Stream a completion from OpenAI.
+        """
+
+        stream = await self.client.chat.completions.create(
+            model=self.model,
+            messages=self._serialize_messages(messages),
+            stream=True,
+        )
+
+        async for chunk in stream:
+            if not chunk.choices:
+                continue
+
+            delta = chunk.choices[0].delta.content
+
+            if delta:
+                yield delta
+
+
+
+
+
 
     def _serialize_messages(
         self,
@@ -114,3 +147,9 @@ class LLMService:
         messages: list[Message],
     ) -> LLMResponse:
         return await self.provider.generate(messages)
+
+    def stream(
+        self,
+        messages: list[Message],
+    ) -> AsyncIterator[str]:
+        return self.provider.stream(messages)
