@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from uuid import UUID
 from pydantic import Field
 
-from app.schemas.common import BaseResponse, SchemaModel,Page
+from app.schemas.common import BaseResponse, SchemaModel
 
 
 class ConversationCreate(SchemaModel):
@@ -33,6 +34,7 @@ class ConversationResponse(BaseResponse):
     Response returned for a single conversation.
     """
 
+    user_id: UUID
     title: str
 
 

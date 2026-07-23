@@ -1,11 +1,13 @@
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
-from sqlalchemy import ForeignKey, String
+from typing import TYPE_CHECKING
+from uuid import UUID
+
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
-from uuid import UUID
 
 if TYPE_CHECKING:
     from app.models.message import Message
@@ -18,6 +20,9 @@ class Conversation(BaseModel):
     """
 
     __tablename__ = "conversations"
+    __table_args__ = (
+        Index("ix_conversations_user_id_updated_at", "user_id", "updated_at"),
+    )
 
     title: Mapped[str] = mapped_column(
         String(255),
@@ -37,9 +42,8 @@ class Conversation(BaseModel):
     )
 
     messages: Mapped[list["Message"]] = relationship(
-    back_populates="conversation",
-    cascade="all, delete-orphan",
-    order_by="Message.created_at",
-    lazy="selectin",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="Message.sequence_number",
+        lazy="selectin",
     )
-    

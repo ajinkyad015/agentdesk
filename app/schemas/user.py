@@ -1,49 +1,39 @@
 from __future__ import annotations
 
-from pydantic import EmailStr, Field
+from datetime import datetime
+from uuid import UUID
 
-from app.schemas.common import BaseResponse, SchemaModel
+from pydantic import Field
+
+from app.schemas.common import SchemaModel
 
 
-class UserCreate(SchemaModel):
+class UserRegisterRequest(SchemaModel):
     """
     Request body for user registration.
     """
 
-    email: EmailStr
-
-    full_name: str = Field(
+    display_name: str = Field(
         min_length=1,
         max_length=255,
-    )
-
-    password: str = Field(
-        min_length=8,
-        max_length=128,
+        description="Name of the user",
     )
 
 
-class UserUpdate(SchemaModel):
+class UserRegisterResponse(SchemaModel):
     """
-    Request body for updating a user profile.
-    """
-
-    full_name: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=255,
-    )
-
-
-class UserResponse(BaseResponse):
-    """
-    Public user information.
+    Response returned on user registration (API key shown once).
     """
 
-    email: EmailStr
+    api_key: str
+    user_id: UUID
 
-    full_name: str
 
-    is_active: bool
-    email_verified: bool
- 
+class UserResponse(SchemaModel):
+    """
+    Public user representation.
+    """
+
+    id: UUID
+    display_name: str
+    created_at: datetime

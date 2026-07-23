@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, JSON, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
-from app.models.enums import TaskStatus
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -17,10 +16,13 @@ if TYPE_CHECKING:
 
 class Task(BaseModel):
     """
-    Represents a long-running AI agent task.
+    User to-do task.
     """
 
     __tablename__ = "tasks"
+    __table_args__ = (
+        Index("ix_tasks_user_id_is_done", "user_id", "is_done"),
+    )
 
     user_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -34,25 +36,14 @@ class Task(BaseModel):
         nullable=False,
     )
 
-    description: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, name="task_status"),
-        default=TaskStatus.PENDING,
+    is_done: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
         nullable=False,
-        index=True,
     )
 
-    result: Mapped[dict | None] = mapped_column(
-        JSONB,
-        nullable=True,
-    )
-
-    error: Mapped[str | None] = mapped_column(
-        Text,
+    due_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
 

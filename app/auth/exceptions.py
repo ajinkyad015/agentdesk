@@ -1,25 +1,8 @@
-from __future__ import annotations
+class AuthException(Exception):
+    """Base exception for authentication errors."""
+    pass
 
 
-class AuthenticationError(Exception):
-    """Base authentication exception."""
-
-
-class InvalidCredentialsError(AuthenticationError):
-    """Invalid email or password."""
-
-
-class UserAlreadyExistsError(AuthenticationError):
-    """Email already registered."""
-
-
-class InactiveUserError(AuthenticationError):
-    """User account is inactive."""
-
-
-class InvalidTokenError(AuthenticationError):
-    """Token is invalid."""
-
-
-class TokenExpiredError(AuthenticationError):
-    """Token has expired."""
+class InvalidApiKeyError(AuthException):
+    """Raised when an API key is invalid or missing."""
+    pass

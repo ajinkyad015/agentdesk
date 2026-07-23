@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,49 +10,32 @@ from app.repositories.base import BaseRepository
 
 class UserRepository(BaseRepository[User]):
     def __init__(self, session: AsyncSession):
-        super().__init__(User, session)
+        super().__init__(session=session, model=User)
 
-    async def get_by_email(
+    async def get_by_api_key_hash(
         self,
-        email: str,
+        api_key_hash: str,
     ) -> User | None:
         stmt = (
             select(User)
-            .where(User.email == email)
+            .where(User.api_key_hash == api_key_hash)
             .limit(1)
         )
 
         result = await self.session.execute(stmt)
-
         return result.scalar_one_or_none()
 
-    async def email_exists(
+    async def create_user(
         self,
-        email: str,
-    ) -> bool:
-        return await self.get_by_email(email) is not None
-
-    async def get_active_by_email(
-        self,
-        email: str,
-    ) -> User | None:
-        stmt = (
-            select(User)
-            .where(
-                User.email == email,
-                User.is_active.is_(True),
-            )
-            .limit(1)
+        *,
+        display_name: str,
+        api_key_hash: str,
+    ) -> User:
+        user = User(
+            display_name=display_name,
+            api_key_hash=api_key_hash,
         )
-
-        result = await self.session.execute(stmt)
-
-        return result.scalar_one_or_none()
-
-    async def update_last_login(
-        self,
-        user: User,
-    ) -> None:
-        user.mark_login()
-
+        self.session.add(user)
         await self.session.flush()
+        await self.session.refresh(user)
+        return user

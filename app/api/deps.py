@@ -5,21 +5,16 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import (
-    get_current_active_user,
-    get_current_superuser,
-    get_current_user,
-)
+from app.auth.dependencies import get_current_user
+from app.auth.service import AuthService
 from app.db.session import get_db
 from app.models.user import User
 from app.services.agent import AgentService
 from app.services.conversation import ConversationService
-
-
-from app.auth.service import AuthService
+from app.services.task import TaskService
 
 # ---------------------------------------------------------------------
-# Database
+# Database Dependency
 # ---------------------------------------------------------------------
 
 DBSession = Annotated[
@@ -29,15 +24,12 @@ DBSession = Annotated[
 
 
 # ---------------------------------------------------------------------
-# Services
+# Services Dependencies
 # ---------------------------------------------------------------------
 
 def get_conversation_service(
     db: DBSession,
 ) -> ConversationService:
-    """
-    Dependency that returns a ConversationService.
-    """
     return ConversationService(db)
 
 
@@ -47,12 +39,21 @@ ConversationServiceDep = Annotated[
 ]
 
 
+def get_task_service(
+    db: DBSession,
+) -> TaskService:
+    return TaskService(db)
+
+
+TaskServiceDep = Annotated[
+    TaskService,
+    Depends(get_task_service),
+]
+
+
 def get_agent_service(
     db: DBSession,
 ) -> AgentService:
-    """
-    Dependency that returns an AgentService.
-    """
     return AgentService(db)
 
 
@@ -61,16 +62,10 @@ AgentServiceDep = Annotated[
     Depends(get_agent_service),
 ]
 
-# ---------------------------------------------------------------------
-# Authentication Services
-# ---------------------------------------------------------------------
 
 def get_auth_service(
     db: DBSession,
 ) -> AuthService:
-    """
-    Dependency that returns an AuthService.
-    """
     return AuthService(db)
 
 
@@ -79,21 +74,12 @@ AuthServiceDep = Annotated[
     Depends(get_auth_service),
 ]
 
+
 # ---------------------------------------------------------------------
-# Authentication
+# Authentication Dependency
 # ---------------------------------------------------------------------
 
 CurrentUser = Annotated[
     User,
     Depends(get_current_user),
-]
-
-CurrentActiveUser = Annotated[
-    User,
-    Depends(get_current_active_user),
-]
-
-CurrentSuperUser = Annotated[
-    User,
-    Depends(get_current_superuser),
 ]

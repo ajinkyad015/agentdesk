@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Any
+from datetime import datetime
+from uuid import UUID
 
 from pydantic import Field
 
-from app.models.enums import TaskStatus
-from app.schemas.common import BaseResponse, SchemaModel
+from app.schemas.common import SchemaModel, UUIDSchema, TimestampSchema
 
 
 class TaskCreate(SchemaModel):
     """
-    Request body for creating a background task.
+    Request body for creating a task.
     """
 
     title: str = Field(
@@ -18,9 +18,9 @@ class TaskCreate(SchemaModel):
         max_length=255,
     )
 
-    description: str | None = Field(
+    due_date: datetime | None = Field(
         default=None,
-        max_length=10_000,
+        description="Optional due date for the task",
     )
 
 
@@ -35,35 +35,32 @@ class TaskUpdate(SchemaModel):
         max_length=255,
     )
 
-    description: str | None = Field(
+    is_done: bool | None = Field(
         default=None,
-        max_length=10_000,
+        description="Completion status",
+    )
+
+    due_date: datetime | None = Field(
+        default=None,
+        description="Due date for the task",
     )
 
 
-class TaskResponse(BaseResponse):
+class TaskResponse(UUIDSchema, TimestampSchema):
+    """
+    Response model for a task.
+    """
+
+    user_id: UUID
     title: str
-    description: str | None
+    is_done: bool
+    due_date: datetime | None = None
 
-    status: TaskStatus
-
-    progress: int = Field(
-        ge=0,
-        le=100,
-        default=0,
-    )
-
-    current_step: str | None = None
-
-    result: dict[str, Any] | None = None
-
-    error: str | None = None
 
 class TaskListResponse(SchemaModel):
     """
-    Response model for a paginated task list.
+    Response model for a list of tasks.
     """
 
     items: list[TaskResponse]
-
     total: int

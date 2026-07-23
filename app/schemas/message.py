@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from pydantic import Field
 
 from app.models.enums import MessageRole
-from app.schemas.common import BaseResponse, SchemaModel
+from app.schemas.common import SchemaModel, UUIDSchema, TimestampSchema
 
 
 class MessageCreate(SchemaModel):
     """
-    Request body for creating a user message.
+    Request body for sending a message.
     """
 
     content: str = Field(
@@ -19,23 +20,21 @@ class MessageCreate(SchemaModel):
     )
 
 
-class MessageResponse(BaseResponse):
+class MessageResponse(UUIDSchema, TimestampSchema):
     """
     Response model for a message.
     """
 
+    conversation_id: UUID
     role: MessageRole
     content: str
 
     tool_name: str | None = None
-    tool_arguments: dict[str, Any] | None = None
-    tool_result: dict[str, Any] | None = None
+    tool_call_id: str | None = None
+    tool_input: dict[str, Any] | None = None
+    tool_output: dict[str, Any] | None = None
 
-    model: str | None = None
-
-    prompt_tokens: int | None = None
-    completion_tokens: int | None = None
-    total_tokens: int | None = None
+    sequence_number: int
 
 
 class MessageListResponse(SchemaModel):
