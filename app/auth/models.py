@@ -8,9 +8,8 @@ from app.models.user import User
 @dataclass(slots=True)
 class AuthenticationResult:
     """
-    Result returned after successful authentication.
+    Result returned after successful authentication via API key.
     """
 
     user: User
-    access_token: str
-    refresh_token: str
+    api_key: str  # The raw API key, shown once at registration

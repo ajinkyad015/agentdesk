@@ -101,11 +101,12 @@ class AgentService:
         - event: token
         - event: done
         """
-        conversation = await self.conversations.get_conversation(
-            conversation_id=conversation_id,
-            user_id=user_id,
-        )
-        if conversation is None:
+        try:
+            conversation = await self.conversations.get_conversation(
+                conversation_id=conversation_id,
+                user_id=user_id,
+            )
+        except ConversationNotFoundError:
             yield f"event: error\ndata: {json.dumps({'message': 'Conversation not found'})}\n\n"
             return
 
