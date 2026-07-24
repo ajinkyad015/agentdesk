@@ -27,5 +27,7 @@ class AuthService:
             display_name=display_name,
             api_key_hash=key_hash,
         )
+        await self.session.commit()
+        await self.session.refresh(user)
 
         return user, raw_key
