@@ -39,13 +39,12 @@ class AgentService:
     ) -> str:
         """
         Execute one full conversation turn (non-streaming).
+        ConversationNotFoundError is raised by get_conversation() if not found.
         """
-        conversation = await self.conversations.get_conversation(
+        await self.conversations.get_conversation(
             conversation_id=conversation_id,
             user_id=user_id,
         )
-        if conversation is None:
-            raise ConversationNotFoundError()
 
         # 1. Add user message
         await self.conversations.add_user_message(conversation_id, message)

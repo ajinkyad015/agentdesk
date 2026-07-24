@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.logging import configure_logging, logger
@@ -68,6 +70,15 @@ app.include_router(
     prefix=settings.API_PREFIX,
 )
 
+# -------------------------------------------------------------------
+# Static Frontend (served at /ui)
+# -------------------------------------------------------------------
+
+_frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+if _frontend_dir.is_dir():
+    app.mount("/ui", StaticFiles(directory=str(_frontend_dir), html=True), name="frontend")
+
+
 @app.get("/", tags=["Root"])
 async def root():
     """
@@ -78,5 +89,6 @@ async def root():
         "application": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
+        "ui": "/ui",
         "health": f"{settings.API_PREFIX}/health",
     }

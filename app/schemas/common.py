@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -46,7 +46,12 @@ class BaseResponse(UUIDSchema, TimestampSchema):
 
     pass
 
-class Page(BaseModel):
+
+class Page(BaseModel, Generic[T]):
+    """
+    Generic paginated response container.
+    """
+
     items: list[T]
     total: int
     limit: int
